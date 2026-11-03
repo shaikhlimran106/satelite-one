@@ -81,6 +81,46 @@ class SmartSelectionPolicyTest {
     }
 
     @Test
+    fun `keeps current when it is within the 50ms switch tolerance`() {
+        val decision = SmartSelectionPolicy.choose(
+            candidates = listOf(candidate("current", 240), candidate("best", 200)),
+            currentTag = "current",
+            currentDelayMs = 600,
+            currentDead = false,
+            config = config,
+        )
+        val pick = decision as SmartSelectionPolicy.Decision.Pick
+        assertEquals("current", pick.candidate.tag)
+        assertFalse(pick.fallback)
+    }
+
+    @Test
+    fun `switches when current is more than the tolerance behind`() {
+        val decision = SmartSelectionPolicy.choose(
+            candidates = listOf(candidate("current", 300), candidate("best", 200)),
+            currentTag = "current",
+            currentDelayMs = 600,
+            currentDead = false,
+            config = config,
+        )
+        val pick = decision as SmartSelectionPolicy.Decision.Pick
+        assertEquals("best", pick.candidate.tag)
+    }
+
+    @Test
+    fun `dead current is excluded even if its stale kernel delay looks fast`() {
+        val decision = SmartSelectionPolicy.choose(
+            candidates = listOf(candidate("current", 100), candidate("best", 200)),
+            currentTag = "current",
+            currentDelayMs = 0,
+            currentDead = true,
+            config = config,
+        )
+        val pick = decision as SmartSelectionPolicy.Decision.Pick
+        assertEquals("best", pick.candidate.tag)
+    }
+
+    @Test
     fun `no valid candidates means no choice`() {
         val decision = SmartSelectionPolicy.choose(
             candidates = listOf(candidate("a", 0), candidate("b", 65_000)),

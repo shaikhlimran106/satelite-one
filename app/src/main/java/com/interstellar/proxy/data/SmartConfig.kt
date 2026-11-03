@@ -28,13 +28,20 @@ data class SmartConfig(
      */
     fun sanitized(): SmartConfig {
         val safeGood = goodMs.coerceIn(GOOD_MIN_MS, GOOD_MAX_MS)
+        val safePatrol = patrolIntervalSec.coerceIn(PATROL_MIN_SEC, PATROL_MAX_SEC)
+        // A cooldown shorter than the patrol cycle never suppresses anything:
+        // the next round always starts after it expires.
+        val minCooldown = (safePatrol * 2).coerceAtMost(COOLDOWN_MAX_SEC)
+        val safeCooldown = cooldownSec
+            .coerceIn(COOLDOWN_MIN_SEC, COOLDOWN_MAX_SEC)
+            .coerceAtLeast(minCooldown)
         return copy(
-            patrolIntervalSec = patrolIntervalSec.coerceIn(PATROL_MIN_SEC, PATROL_MAX_SEC),
+            patrolIntervalSec = safePatrol,
             firstPatrolDelaySec = firstPatrolDelaySec.coerceIn(FIRST_DELAY_MIN_SEC, FIRST_DELAY_MAX_SEC),
             goodMs = safeGood,
             pingMaxMs = pingMaxMs.coerceIn(PING_MIN_MS, PING_MAX_MS_LIMIT),
             realMaxMs = realMaxMs.coerceIn(REAL_MIN_MS, safeGood),
-            cooldownSec = cooldownSec.coerceIn(COOLDOWN_MIN_SEC, COOLDOWN_MAX_SEC),
+            cooldownSec = safeCooldown,
             roundTimeoutSec = roundTimeoutSec.coerceIn(ROUND_MIN_SEC, ROUND_MAX_SEC),
             minCandidatesWarn = minCandidatesWarn.coerceIn(MIN_CANDIDATES_MIN, MIN_CANDIDATES_MAX),
             verifyAttempts = verifyAttempts.coerceIn(VERIFY_MIN, VERIFY_MAX),
@@ -49,10 +56,10 @@ data class SmartConfig(
 
         const val DEFAULT_PATROL_INTERVAL_SEC = 30
         const val DEFAULT_FIRST_PATROL_DELAY_SEC = 8
-        const val DEFAULT_GOOD_MS = 300
+        const val DEFAULT_GOOD_MS = 500
         const val DEFAULT_PING_MAX_MS = 200
         const val DEFAULT_REAL_MAX_MS = 300
-        const val DEFAULT_COOLDOWN_SEC = 20
+        const val DEFAULT_COOLDOWN_SEC = 120
         const val DEFAULT_ROUND_TIMEOUT_SEC = 40
         const val DEFAULT_MIN_CANDIDATES_WARN = 3
         const val DEFAULT_VERIFY_ATTEMPTS = 5
@@ -66,8 +73,8 @@ data class SmartConfig(
         const val PING_MIN_MS = 50
         const val PING_MAX_MS_LIMIT = 2_000
         const val REAL_MIN_MS = 100
-        const val COOLDOWN_MIN_SEC = 5
-        const val COOLDOWN_MAX_SEC = 300
+        const val COOLDOWN_MIN_SEC = 30
+        const val COOLDOWN_MAX_SEC = 600
         const val ROUND_MIN_SEC = 20
         const val ROUND_MAX_SEC = 300
         const val MIN_CANDIDATES_MIN = 1

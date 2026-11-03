@@ -734,7 +734,8 @@ private fun SmartStatusLine(
             body,
             color = if (
                 state.alert != null ||
-                state.phase is com.interstellar.proxy.ui.SmartSwitchEngine.SmartPhase.SlowPoolKept
+                state.phase is com.interstellar.proxy.ui.SmartSwitchEngine.SmartPhase.SlowPoolKept ||
+                state.phase is com.interstellar.proxy.ui.SmartSwitchEngine.SmartPhase.Confirming
             ) {
                 colors.warning
             } else {

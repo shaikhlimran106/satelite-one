@@ -61,6 +61,7 @@
     <string name="smart_phase_patrolling">Patrolling</string>
     <string name="smart_phase_patrol_error">Patrol error: %1$s</string>
     <string name="smart_phase_healthy">Healthy %1$dms</string>
+    <string name="smart_phase_confirming">Confirming %1$dms</string>
     <string name="smart_phase_ping_scan">Ping scan</string>
     <string name="smart_phase_real_test">Latency test</string>
     <string name="smart_phase_cooldown">Cooldown</string>
@@ -421,7 +422,7 @@
     <string name="smart_settings_thresholds_footer">API cores test the whole pool; Xray switch-verifies one candidate at a time. Slow-pool fallback only picks a node 20 percent faster (at least 50ms) and within 2× the measured gate.</string>
     <string name="smart_settings_section_switch">Switching</string>
     <string name="smart_settings_cooldown_title">Switch cooldown</string>
-    <string name="smart_settings_cooldown_desc">Minimum gap between automatic switches</string>
+    <string name="smart_settings_cooldown_desc">Minimum gap between automatic switches; at least 2× the patrol interval</string>
     <string name="smart_settings_round_timeout_title">Round timeout</string>
     <string name="smart_settings_round_timeout_desc">A round longer than this raises an alert</string>
     <string name="smart_settings_switch_footer">A dead current exit skips cooldown and the relative-improvement check, picking the lowest measured delay.</string>
@@ -444,7 +445,7 @@
     <string name="smart_settings_backoff_desc">Extend the patrol interval after consecutive bad rounds, capped at 5 minutes</string>
     <string name="smart_settings_advanced_footer">UDP nodes cannot answer TCP Ping; when enabled they join via kernel measurement or Xray switch-verification.</string>
     <string name="smart_settings_reset_title">Restore defaults</string>
-    <string name="smart_settings_reset_desc">Restore 30s patrol, 300ms thresholds, and other factory values</string>
+    <string name="smart_settings_reset_desc">Restore 30s patrol, 500ms healthy, 300ms measured, 120s cooldown, and other factory values</string>
     <string name="smart_settings_reset_action">Restore</string>
     <string name="smart_settings_unit_seconds">s</string>
     <string name="smart_settings_unit_ms">ms</string>

@@ -17,6 +17,9 @@ object SmartSelectionPolicy {
     private const val MIN_IMPROVEMENT_MS = 50
     private const val IMPROVEMENT_PERCENT = 20
 
+    /** Keep the current node unless another candidate is at least this much faster. */
+    const val STICKY_TOLERANCE_MS = 50
+
     data class Candidate(val tag: String, val delayMs: Int)
 
     sealed interface Decision {
@@ -33,13 +36,35 @@ object SmartSelectionPolicy {
         config: SmartConfig,
     ): Decision {
         val valid = candidates.filter { it.delayMs in 1 until MAX_DELAY_MS }
-        if (valid.isEmpty()) return Decision.NoCandidate
+        // A dead current exit must never "win" on a stale kernel measurement.
+        val selectable = if (currentDead && currentTag != null) {
+            valid.filterNot { it.tag == currentTag }
+        } else {
+            valid
+        }
+        if (selectable.isEmpty()) return Decision.NoCandidate
 
-        val best = valid.minByOrNull { it.delayMs }!!
-        val qualified = valid
+        val best = selectable.minByOrNull { it.delayMs }!!
+        val qualified = selectable
             .filter { it.delayMs < config.realMaxMs }
             .minByOrNull { it.delayMs }
-        if (qualified != null) return Decision.Pick(qualified, fallback = false)
+        if (qualified != null) {
+            // Measurements of near-equal nodes wobble by tens of ms. Without
+            // this stickiness every round would rotate the winner among the
+            // same handful of nodes. A dead current exit never gets the benefit.
+            val current = currentTag
+                ?.takeUnless { currentDead }
+                ?.let { tag -> valid.firstOrNull { it.tag == tag } }
+            val chosen = if (
+                current != null &&
+                current.delayMs <= qualified.delayMs + STICKY_TOLERANCE_MS
+            ) {
+                current
+            } else {
+                qualified
+            }
+            return Decision.Pick(chosen, fallback = false)
+        }
 
         // No absolute winner. A dead/absent exit cannot get worse, so take
         // the best measured node even if it is still above the fallback cap.

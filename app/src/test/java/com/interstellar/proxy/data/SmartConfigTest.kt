@@ -41,6 +41,20 @@ class SmartConfigTest {
     }
 
     @Test
+    fun `factory defaults keep a healthy deadband and a two-cycle cooldown`() {
+        val defaults = SmartConfig().sanitized()
+        assertEquals(500, defaults.goodMs)
+        assertEquals(300, defaults.realMaxMs)
+        assertEquals(120, defaults.cooldownSec)
+    }
+
+    @Test
+    fun `cooldown cannot be shorter than two patrol intervals`() {
+        val safe = SmartConfig(patrolIntervalSec = 60, cooldownSec = 30).sanitized()
+        assertEquals(120, safe.cooldownSec)
+    }
+
+    @Test
     fun `valid https url and defaults survive sanitize`() {
         val custom = SmartConfig(testUrl = "https://example.com/204").sanitized()
         assertEquals("https://example.com/204", custom.testUrl)

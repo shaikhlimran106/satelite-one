@@ -61,6 +61,7 @@
     <string name="smart_phase_patrolling">巡检中</string>
     <string name="smart_phase_patrol_error">巡检异常: %1$s</string>
     <string name="smart_phase_healthy">正常 %1$dms</string>
+    <string name="smart_phase_confirming">确认中 %1$dms</string>
     <string name="smart_phase_ping_scan">Ping 扫描</string>
     <string name="smart_phase_real_test">实测筛选</string>
     <string name="smart_phase_cooldown">冷却中</string>
@@ -421,7 +422,7 @@
     <string name="smart_settings_thresholds_footer">有控制 API 的内核直接测全池;Xray 逐个切换验证。相对兜底:池整体慢时,只有比当前快 20％(至少 50ms)且不超过实测门槛 2 倍的节点才会被选中。</string>
     <string name="smart_settings_section_switch">切换</string>
     <string name="smart_settings_cooldown_title">切换冷却</string>
-    <string name="smart_settings_cooldown_desc">两次自动切换之间的最短间隔</string>
+    <string name="smart_settings_cooldown_desc">两次自动切换之间的最短间隔,至少为巡检间隔的 2 倍</string>
     <string name="smart_settings_round_timeout_title">单轮超时</string>
     <string name="smart_settings_round_timeout_desc">超过该时长会显示告警</string>
     <string name="smart_settings_switch_footer">当前节点已死时跳过冷却与相对改善判断,直接选择实测最低的节点。</string>
@@ -444,7 +445,7 @@
     <string name="smart_settings_backoff_desc">连续无改善时逐步延长巡检间隔,上限 5 分钟</string>
     <string name="smart_settings_advanced_footer">UDP 节点无法 TCP Ping;开启后由内核实测或 Xray 切换验证参与择优。</string>
     <string name="smart_settings_reset_title">恢复默认</string>
-    <string name="smart_settings_reset_desc">恢复巡检 30s、阈值 300ms 等出厂值</string>
+    <string name="smart_settings_reset_desc">恢复巡检 30s、健康 500ms、实测 300ms、冷却 120s 等出厂值</string>
     <string name="smart_settings_reset_action">恢复</string>
     <string name="smart_settings_unit_seconds">秒</string>
     <string name="smart_settings_unit_ms">ms</string>

@@ -116,12 +116,16 @@ fun SmartSettingsPage(onApply: () -> Unit) {
         // ---- 切换 ----
         PrefSectionLabel(stringResource(R.string.smart_settings_section_switch))
         GlassCard(modifier = Modifier.fillMaxWidth(), contentPadding = 6.dp) {
+            val minCooldown = maxOf(
+                SmartConfig.COOLDOWN_MIN_SEC,
+                config.patrolIntervalSec * 2,
+            ).coerceAtMost(SmartConfig.COOLDOWN_MAX_SEC)
             SmartNumberRow(
                 title = stringResource(R.string.smart_settings_cooldown_title),
                 desc = stringResource(R.string.smart_settings_cooldown_desc),
                 value = config.cooldownSec,
                 unit = stringResource(R.string.smart_settings_unit_seconds),
-                range = SmartConfig.COOLDOWN_MIN_SEC..SmartConfig.COOLDOWN_MAX_SEC,
+                range = minCooldown..SmartConfig.COOLDOWN_MAX_SEC,
                 onCommit = { save(config.copy(cooldownSec = it)) },
             )
             SmartNumberRow(

@@ -4,6 +4,7 @@ import com.interstellar.proxy.InterstellarApplication
 import com.interstellar.proxy.core.AppLog
 import com.interstellar.proxy.core.DirectPing
 import com.interstellar.proxy.data.SmartConfig
+import com.interstellar.proxy.data.SmartPatrolGate
 import com.interstellar.proxy.data.SmartSelectionPolicy
 import com.interstellar.proxy.data.SmartSelectionPolicy.Candidate
 import com.interstellar.proxy.data.isUdpOnlyProtocol
@@ -85,6 +86,7 @@ class SmartSwitchEngine(
         data object Patrolling : SmartPhase
         data class PatrolError(val brief: String) : SmartPhase
         data class Healthy(val delayMs: Int) : SmartPhase
+        data class Confirming(val delayMs: Int) : SmartPhase
         data object PingScan : SmartPhase
         data object RealTest : SmartPhase
         data object Cooldown : SmartPhase
@@ -102,7 +104,7 @@ class SmartSwitchEngine(
         data class RoundTooLong(val seconds: Int) : SmartAlert
     }
 
-    private enum class PatrolOutcome { Idle, Healthy, Switched, Kept, Cooldown, Failed }
+    private enum class PatrolOutcome { Idle, Healthy, Confirming, Switched, Kept, Cooldown, Failed }
 
     companion object {
         private const val PING_TIMEOUT_MS = 3_000
@@ -110,6 +112,8 @@ class SmartSwitchEngine(
         private const val MAX_DELAY_MS = 65_000
         private const val UDP_VERIFY_SLOTS = 2
         private const val MAX_BACKOFF_MS = 300_000L
+        private const val HEALTHY_ROUNDS_TO_RESET = 2
+        private const val KERNEL_TEST_CACHE_MS = 90_000L
         private const val CACHE_FILE = "smart_cache.json"
     }
 
@@ -121,7 +125,11 @@ class SmartSwitchEngine(
 
     private val loopMutex = Mutex()
     private val wake = Channel<Unit>(Channel.CONFLATED)
-    private var consecutiveBadRounds = 0
+    private var backoffLevel = 0
+    private var healthyStreak = 0
+    private var consecutiveBadPatrols = 0
+    private var lastKernelDelays: Map<String, Int>? = null
+    private var lastKernelTestAt = 0L
 
     /** tag → (delayMs, epochSec); persisted, sorted ascending by delay. */
     private val cache = linkedMapOf<String, Pair<Int, Long>>()
@@ -149,7 +157,11 @@ class SmartSwitchEngine(
         started = true
         generation++
         val gen = generation
-        consecutiveBadRounds = 0
+        backoffLevel = 0
+        healthyStreak = 0
+        consecutiveBadPatrols = 0
+        lastKernelDelays = null
+        lastKernelTestAt = 0L
         val cfg = config().sanitized()
         state = state.copy(active = false, phase = SmartPhase.Idle, alert = null, currentTag = currentTag())
         AppLog.log(
@@ -220,15 +232,33 @@ class SmartSwitchEngine(
         val base = cfg.patrolIntervalSec * 1000L
         when (outcome) {
             PatrolOutcome.Idle -> {
-                consecutiveBadRounds = 0
+                backoffLevel = 0
+                healthyStreak = 0
                 return base
             }
 
-            PatrolOutcome.Healthy, PatrolOutcome.Switched -> consecutiveBadRounds = 0
-            else -> consecutiveBadRounds = (consecutiveBadRounds + 1).coerceAtMost(8)
+            PatrolOutcome.Confirming -> {
+                healthyStreak = 0
+                return base
+            }
+
+            PatrolOutcome.Healthy -> {
+                healthyStreak++
+                if (healthyStreak >= HEALTHY_ROUNDS_TO_RESET) backoffLevel = 0
+            }
+
+            PatrolOutcome.Switched -> {
+                healthyStreak = 0
+                backoffLevel = backoffLevel.coerceAtLeast(1)
+            }
+
+            else -> {
+                healthyStreak = 0
+                backoffLevel = (backoffLevel + 1).coerceAtMost(8)
+            }
         }
-        if (!cfg.backoffEnabled || consecutiveBadRounds == 0) return base
-        val factor = 1L shl consecutiveBadRounds.coerceAtMost(4)
+        if (!cfg.backoffEnabled || backoffLevel == 0) return base
+        val factor = 1L shl backoffLevel.coerceAtMost(4)
         return (base * factor).coerceAtMost(MAX_BACKOFF_MS)
     }
 
@@ -244,26 +274,52 @@ class SmartSwitchEngine(
         val tag = currentTag()
         val real = probeExit(cfg)
         state = state.copy(currentDelayMs = real)
-        if (tag != null && real in 1..cfg.goodMs) {
-            record(tag, real)
-            state = state.copy(phase = SmartPhase.Healthy(real))
-            AppLog.log("smart", "巡检正常: $tag · ${real}ms")
-            return PatrolOutcome.Healthy
-        }
         val currentDead = tag == null || real <= 0
-        when {
-            tag == null -> AppLog.log("smart", "巡检异常: 无当前节点 → 开始筛选备选")
-            real <= 0 -> AppLog.log(
-                "smart",
-                "巡检异常: $tag · 出口不可用 → 开始筛选备选",
-            )
+        val gate = SmartPatrolGate.decide(
+            hasCurrent = tag != null,
+            currentDead = currentDead,
+            delayMs = real,
+            goodMs = cfg.goodMs,
+            previousBadPatrols = consecutiveBadPatrols,
+        )
+        when (gate) {
+            SmartPatrolGate.Decision.Healthy -> {
+                consecutiveBadPatrols = 0
+                record(tag!!, real)
+                state = state.copy(phase = SmartPhase.Healthy(real))
+                AppLog.log("smart", "巡检正常: $tag · ${real}ms")
+                return PatrolOutcome.Healthy
+            }
 
-            else -> AppLog.log(
-                "smart",
-                "巡检异常: $tag · 延迟 ${real}ms 超过阈值 ${cfg.goodMs}ms → 开始筛选备选",
-            )
+            SmartPatrolGate.Decision.Confirm -> {
+                consecutiveBadPatrols++
+                state = state.copy(phase = SmartPhase.Confirming(real))
+                AppLog.log(
+                    "smart",
+                    "巡检异常: $tag · 延迟 ${real}ms 超过阈值 ${cfg.goodMs}ms " +
+                        "(${consecutiveBadPatrols}/${SmartPatrolGate.REQUIRED_BAD_PATROLS}) → 等待下次巡检确认",
+                )
+                return PatrolOutcome.Confirming
+            }
+
+            SmartPatrolGate.Decision.Reselect -> {
+                consecutiveBadPatrols = 0
+                when {
+                    tag == null -> AppLog.log("smart", "巡检异常: 无当前节点 → 开始筛选备选")
+                    real <= 0 -> AppLog.log(
+                        "smart",
+                        "巡检异常: $tag · 出口不可用 → 开始筛选备选",
+                    )
+
+                    else -> AppLog.log(
+                        "smart",
+                        "巡检异常: $tag · 延迟 ${real}ms 超过阈值 ${cfg.goodMs}ms " +
+                            "(${SmartPatrolGate.REQUIRED_BAD_PATROLS}/${SmartPatrolGate.REQUIRED_BAD_PATROLS}) → 开始筛选备选",
+                    )
+                }
+                return reselect(real, currentDead, cfg)
+            }
         }
-        return reselect(real, currentDead, cfg)
     }
 
     // ---- reselection round ----
@@ -296,7 +352,31 @@ class SmartSwitchEngine(
         val udpTags = if (cfg.allowUdp) udpEligibleTags else emptyList()
         val nonUdpTags = eligibleTags.filterNot { it in udpEligibleTags }
 
-        val kernelDelays = requestKernelDelays?.invoke()
+        val now = System.currentTimeMillis()
+        val cachedKernel = lastKernelDelays
+        val cacheAge = now - lastKernelTestAt
+        val kernelDelays = if (
+            cachedKernel != null &&
+            cacheAge >= 0 &&
+            cacheAge < KERNEL_TEST_CACHE_MS
+        ) {
+            AppLog.log(
+                "smart",
+                "使用缓存内核实测 (${(now - lastKernelTestAt) / 1000}s 前, " +
+                    "有效期 ${KERNEL_TEST_CACHE_MS / 1000}s)",
+            )
+            cachedKernel
+        } else {
+            val fresh = requestKernelDelays?.invoke()
+            if (fresh != null) {
+                lastKernelDelays = fresh
+                lastKernelTestAt = System.currentTimeMillis()
+            } else {
+                lastKernelDelays = null
+                lastKernelTestAt = 0L
+            }
+            fresh
+        }
         if (kernelDelays != null) {
             val measured = eligibleTags.mapNotNull { tag ->
                 val delay = kernelDelays[tag]?.takeIf { it in 1 until MAX_DELAY_MS }
@@ -306,10 +386,12 @@ class SmartSwitchEngine(
             }
             if (measured.isNotEmpty()) {
                 state = state.copy(phase = SmartPhase.RealTest, candidateCount = measured.size)
+                val currentKernel = currentTag()?.let { kernelDelays[it] }
                 AppLog.log(
                     "smart",
                     "内核实测: ${measured.size} 个节点有延迟, " +
-                        "达标 ${measured.count { it.delayMs < cfg.realMaxMs }} 个 (<${cfg.realMaxMs}ms)" +
+                        "达标 ${measured.count { it.delayMs < cfg.realMaxMs }} 个 (<${cfg.realMaxMs}ms), " +
+                        "当前内核 ${currentKernel?.let { "${it}ms" } ?: "-"}" +
                         udpSuffix(udpEligibleTags.size, cfg),
                 )
                 if (measured.size < cfg.minCandidatesWarn) {
@@ -399,6 +481,14 @@ class SmartSwitchEngine(
             currentDelayMs = currentDelay,
             currentDead = currentDead,
             config = cfg,
+        )
+        val currentKernel = measured.firstOrNull { it.tag == original }?.delayMs
+        val bestKernel = measured.minByOrNull { it.delayMs }?.delayMs
+        AppLog.log(
+            "smart",
+            "判定: 巡检 ${currentDelay}ms · 内核当前 ${currentKernel?.let { "${it}ms" } ?: "-"} · " +
+                "内核最优 ${bestKernel?.let { "${it}ms" } ?: "-"} · 容差 " +
+                "${SmartSelectionPolicy.STICKY_TOLERANCE_MS}ms",
         )
         return when (decision) {
             SmartSelectionPolicy.Decision.NoCandidate -> {

@@ -111,6 +111,8 @@ object LocalizedNames {
                     getString(R.string.smart_phase_patrol_error, phase.brief)
                 is SmartSwitchEngine.SmartPhase.Healthy ->
                     getString(R.string.smart_phase_healthy, phase.delayMs)
+                is SmartSwitchEngine.SmartPhase.Confirming ->
+                    getString(R.string.smart_phase_confirming, phase.delayMs)
                 SmartSwitchEngine.SmartPhase.PingScan -> getString(R.string.smart_phase_ping_scan)
                 SmartSwitchEngine.SmartPhase.RealTest -> getString(R.string.smart_phase_real_test)
                 SmartSwitchEngine.SmartPhase.Cooldown -> getString(R.string.smart_phase_cooldown)

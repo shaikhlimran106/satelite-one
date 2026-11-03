@@ -72,12 +72,13 @@ android {
         abi {
             isEnable = true
             reset()
-            if (targetAbi != null) {
-                include(targetAbi)
+            val abi = targetAbi
+            if (abi != null) {
+                include(abi)
             } else {
                 include("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
             }
-            isUniversalApk = targetAbi == null
+            isUniversalApk = abi == null
         }
     }
 

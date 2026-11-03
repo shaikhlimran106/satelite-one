@@ -12,8 +12,11 @@ build/
 
 # signing (never commit)
 interstellar.jks
+interstellar.jks.base64
 keystore.properties
 signing.properties
+安卓编译密钥说明.md
+New-ReleaseKeystore.ps1
 
 # 112MB sing-box core — rebuild via `make lib_android` (see README)
 app/libs/libbox.aar

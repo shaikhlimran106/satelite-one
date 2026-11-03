@@ -1,16 +1,14 @@
-# 推送 main 自动编译 release APK 作为 Actions artifact；
-# 推送 v* tag 额外发布到 GitHub Release。
+# 推送 v* tag 自动编译 arm64-v8a release APK 并发布到 GitHub Release；
+# workflow_dispatch 可手动构建同一 arm64 artifact（不创建 Release）。
 # 发版: 改 version.properties → 提交 → git tag v<versionName> && git push origin v<versionName>
 #
 # 流程: 构建 sing-box 内核 libbox.aar(app/libs 被 gitignore, CI 从源码重建, 按 tag 缓存)
-#       → 注入签名(可选 secrets) → assembleRelease(按 ABI 分包) → 上传 artifact / Release
+#       → 注入签名(可选 secrets) → assembleRelease(-PtargetAbi=arm64-v8a) → 上传 artifact / Release
 
 name: Build & Release APK
 
 on:
   push:
-    branches:
-      - main
     tags:
       - 'v*'
   workflow_dispatch:
@@ -135,12 +133,12 @@ jobs:
           chmod +x gradlew
           ./gradlew :app:testDebugUnitTest --no-daemon
 
-      - name: Build release APK
+      - name: Build arm64-v8a release APK
         run: |
           chmod +x gradlew
-          ./gradlew :app:assembleRelease --no-daemon
+          ./gradlew :app:assembleRelease -PtargetAbi=arm64-v8a --no-daemon
 
-      # satelite-one-<abi>-release.apk → satelite-one-<abi>-<tag|main-run>.apk
+      # satelite-one-arm64-v8a-release.apk → satelite-one-arm64-v8a-<tag>.apk
       - name: Rename APKs with build label
         run: |
           cd app/build/outputs/apk/release

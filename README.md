@@ -118,7 +118,8 @@ app/src/main/java/com/interstellar/proxy/
 2. **APK**：
    ```bash
    ./gradlew assembleDebug    # 地心游记（.debug 后缀包名，与正式版共存）
-   ./gradlew assembleRelease  # 星际穿越（按 ABI 分包）
+   ./gradlew assembleRelease  # 星际穿越（本地默认四 ABI 分包）
+   ./gradlew assembleRelease -PtargetAbi=arm64-v8a  # CI 只产出 arm64-v8a APK
    ```
    - 签名：根目录 `signing.properties`（gitignored），缺失时 release 回退 debug 签名
    - 网络受限环境可用腾讯 gradle 镜像（已在 wrapper 配置）

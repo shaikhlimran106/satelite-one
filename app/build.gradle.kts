@@ -20,6 +20,9 @@ val versionProps = Properties().apply {
     rootProject.file("version.properties").inputStream().use { load(it) }
 }
 
+// CI 只打包 arm64-v8a: -PtargetAbi=arm64-v8a。不传时保持本地四 ABI + universal。
+val targetAbi = providers.gradleProperty("targetAbi").orNull?.trim()?.takeIf { it.isNotEmpty() }
+
 android {
     namespace = "com.interstellar.proxy"
     compileSdk = 36
@@ -62,13 +65,19 @@ android {
         }
     }
 
-    // per-ABI APKs: ~40MB instead of one 146MB universal blob
+    // per-ABI APKs: ~40MB instead of one 146MB universal blob.
+    // CI passes -PtargetAbi=arm64-v8a, which drops the other splits and the
+    // universal APK entirely.
     splits {
         abi {
             isEnable = true
             reset()
-            include("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
-            isUniversalApk = true
+            if (targetAbi != null) {
+                include(targetAbi)
+            } else {
+                include("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
+            }
+            isUniversalApk = targetAbi == null
         }
     }
 

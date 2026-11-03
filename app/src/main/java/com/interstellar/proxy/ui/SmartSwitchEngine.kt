@@ -149,7 +149,6 @@ class SmartSwitchEngine(
         started = true
         generation++
         val gen = generation
-        loadCache()
         consecutiveBadRounds = 0
         val cfg = config().sanitized()
         state = state.copy(active = false, phase = SmartPhase.Idle, alert = null, currentTag = currentTag())
@@ -167,6 +166,8 @@ class SmartSwitchEngine(
                 // this in start() could steal the wake a sleeping old loop
                 // needs to notice the generation change.
                 drainWake()
+                // Reload after the old round finished so its final save wins.
+                loadCache()
                 if (initialDelay > 0) {
                     withTimeoutOrNull(initialDelay) { wake.receive() }
                 }
@@ -311,6 +312,9 @@ class SmartSwitchEngine(
                         "达标 ${measured.count { it.delayMs < cfg.realMaxMs }} 个 (<${cfg.realMaxMs}ms)" +
                         udpSuffix(udpEligibleTags.size, cfg),
                 )
+                if (measured.size < cfg.minCandidatesWarn) {
+                    AppLog.log("smart", "可用实测节点过少: 仅 ${measured.size} 个")
+                }
                 val outcome = decideAndApply(
                     measured = measured,
                     currentDelay = currentDelay,

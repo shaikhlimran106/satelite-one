@@ -82,6 +82,19 @@ class XrayConfigBuilderTest {
     }
 
     @Test
+    fun `supports rejects xray-incompatible node types and transports`() {
+        val base = ProxyNode(id = "x", name = "x", type = NodeType.HYSTERIA2, server = "x", port = 443)
+        check(XrayConfigBuilder.supports(base)) { "hysteria2 is supported" }
+        check(XrayConfigBuilder.supports(base.copy(type = NodeType.WIREGUARD))) { "wireguard is supported" }
+        check(!XrayConfigBuilder.supports(base.copy(type = NodeType.TUIC))) { "tuic must be filtered" }
+        check(!XrayConfigBuilder.supports(base.copy(type = NodeType.ANYTLS))) { "anytls must be filtered" }
+        check(!XrayConfigBuilder.supports(base.copy(network = "quic"))) { "quic transport must be filtered" }
+        check(!XrayConfigBuilder.supports(base.copy(shadowTls = ProxyNode.ShadowTlsParams()))) {
+            "shadow-tls detours must be filtered"
+        }
+    }
+
+    @Test
     fun `fallback direct sends unmatched traffic to the freedom outbound`() {
         val rules = routingRules(
             ConfigBuilder.BuildOptions(mode = ConfigBuilder.OutboundMode.RULE, fallbackDirect = true),

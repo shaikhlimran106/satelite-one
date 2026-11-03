@@ -50,8 +50,12 @@ object XrayConfigBuilder {
     var skippedReport: String? = null
         private set
 
+    /** True when [node] can be baked into an Xray outbound. */
+    fun supports(node: ProxyNode): Boolean =
+        node.type in SUPPORTED && node.shadowTls == null && node.network != "quic"
+
     fun build(nodes: List<ProxyNode>, options: ConfigBuilder.BuildOptions): String {
-        val usable = nodes.filter { it.type in SUPPORTED && it.shadowTls == null && it.network != "quic" }
+        val usable = nodes.filter { supports(it) }
         val unsupported = nodes.size - usable.size
         skippedReport = if (unsupported > 0) {
             str(com.interstellar.proxy.R.string.xray_skipped_nodes, unsupported)

@@ -206,6 +206,91 @@ object Settings {
             commit()
         }
 
+    // ---- smart switch tuning ----
+
+    var smartPatrolIntervalSec: Int
+        get() = int("smartPatrolIntervalSec", SmartConfig.DEFAULT_PATROL_INTERVAL_SEC)
+        set(value) {
+            putInt("smartPatrolIntervalSec", value)
+        }
+
+    var smartFirstPatrolDelaySec: Int
+        get() = int("smartFirstPatrolDelaySec", SmartConfig.DEFAULT_FIRST_PATROL_DELAY_SEC)
+        set(value) {
+            putInt("smartFirstPatrolDelaySec", value)
+        }
+
+    var smartGoodMs: Int
+        get() = int("smartGoodMs", SmartConfig.DEFAULT_GOOD_MS)
+        set(value) {
+            putInt("smartGoodMs", value)
+        }
+
+    var smartPingMaxMs: Int
+        get() = int("smartPingMaxMs", SmartConfig.DEFAULT_PING_MAX_MS)
+        set(value) {
+            putInt("smartPingMaxMs", value)
+        }
+
+    var smartRealMaxMs: Int
+        get() = int("smartRealMaxMs", SmartConfig.DEFAULT_REAL_MAX_MS)
+        set(value) {
+            putInt("smartRealMaxMs", value)
+        }
+
+    var smartCooldownSec: Int
+        get() = int("smartCooldownSec", SmartConfig.DEFAULT_COOLDOWN_SEC)
+        set(value) {
+            putInt("smartCooldownSec", value)
+        }
+
+    var smartRoundTimeoutSec: Int
+        get() = int("smartRoundTimeoutSec", SmartConfig.DEFAULT_ROUND_TIMEOUT_SEC)
+        set(value) {
+            putInt("smartRoundTimeoutSec", value)
+        }
+
+    var smartMinCandidatesWarn: Int
+        get() = int("smartMinCandidatesWarn", SmartConfig.DEFAULT_MIN_CANDIDATES_WARN)
+        set(value) {
+            putInt("smartMinCandidatesWarn", value)
+        }
+
+    var smartVerifyAttempts: Int
+        get() = int("smartVerifyAttempts", SmartConfig.DEFAULT_VERIFY_ATTEMPTS)
+        set(value) {
+            putInt("smartVerifyAttempts", value)
+        }
+
+    var smartTestUrl: String
+        get() = properties.getProperty("smartTestUrl", SmartConfig.DEFAULT_TEST_URL)
+        set(value) {
+            properties.setProperty("smartTestUrl", value)
+            commit()
+        }
+
+    var smartAllowUdp: Boolean
+        get() = properties.getProperty("smartAllowUdp", "true").toBoolean()
+        set(value) {
+            properties.setProperty("smartAllowUdp", value.toString())
+            commit()
+        }
+
+    var smartBackoffEnabled: Boolean
+        get() = properties.getProperty("smartBackoffEnabled", "true").toBoolean()
+        set(value) {
+            properties.setProperty("smartBackoffEnabled", value.toString())
+            commit()
+        }
+
+    private fun int(key: String, default: Int): Int =
+        properties.getProperty(key)?.toIntOrNull() ?: default
+
+    private fun putInt(key: String, value: Int) {
+        properties.setProperty(key, value.toString())
+        commit()
+    }
+
     /** Nodes page layout: grid (default) or list. */
     var nodesGridView: Boolean
         get() = properties.getProperty("nodesGridView", "true").toBoolean()

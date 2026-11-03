@@ -732,7 +732,14 @@ private fun SmartStatusLine(
         Spacer(Modifier.width(6.dp))
         Text(
             body,
-            color = if (state.alert != null) colors.warning else colors.textTertiary,
+            color = if (
+                state.alert != null ||
+                state.phase is com.interstellar.proxy.ui.SmartSwitchEngine.SmartPhase.SlowPoolKept
+            ) {
+                colors.warning
+            } else {
+                colors.textTertiary
+            },
             fontSize = 11.sp,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,

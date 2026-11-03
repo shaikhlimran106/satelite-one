@@ -118,6 +118,8 @@ object LocalizedNames {
                     getString(R.string.smart_phase_switched, phase.delayMs)
                 is SmartSwitchEngine.SmartPhase.Keep ->
                     getString(R.string.smart_phase_keep, phase.delayMs)
+                is SmartSwitchEngine.SmartPhase.SlowPoolKept ->
+                    getString(R.string.smart_phase_slow_pool, phase.delayMs)
                 SmartSwitchEngine.SmartPhase.Failed -> getString(R.string.smart_phase_failed)
             }
         }

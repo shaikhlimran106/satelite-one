@@ -66,7 +66,7 @@ fun setLanguageChangedListener(listener: () -> Unit) {
     onLanguageChanged = listener
 }
 
-enum class SettingsSubPage { Settings, PerApp, Connections, Logs, Rules, Dns, Proxy }
+enum class SettingsSubPage { Settings, PerApp, Connections, Logs, Rules, Dns, Proxy, Smart }
 
 /** Bottom-dock root tabs (satelite's navbar, phone layout). */
 enum class MainTab { Home, Nodes, Subscriptions, Logs, Settings }
@@ -81,6 +81,7 @@ fun settingsSubPageTitle(page: SettingsSubPage): String = when (page) {
     SettingsSubPage.Rules -> stringResource(R.string.settings_subpage_rules)
     SettingsSubPage.Dns -> stringResource(R.string.settings_subpage_dns)
     SettingsSubPage.Proxy -> stringResource(R.string.settings_subpage_proxy)
+    SettingsSubPage.Smart -> stringResource(R.string.settings_subpage_smart)
 }
 
 private fun isIgnoringBatteryOptimizations(context: android.content.Context): Boolean =
@@ -221,6 +222,17 @@ fun SettingsPage(onOpen: (SettingsSubPage) -> Unit, onProxyChanged: () -> Unit =
                 },
                 onClick = { onOpen(SettingsSubPage.Dns) },
             )
+            val smartConfig = com.interstellar.proxy.data.SmartSettingsStore.load()
+            PrefNavRow(
+                title = stringResource(R.string.settings_subpage_smart),
+                desc = stringResource(R.string.settings_smart_desc),
+                value = if (smartConfig.isDefault()) {
+                    stringResource(R.string.settings_smart_default)
+                } else {
+                    stringResource(R.string.settings_smart_custom)
+                },
+                onClick = { onOpen(SettingsSubPage.Smart) },
+            )
         }
 
         Spacer(Modifier.height(22.dp))
@@ -297,7 +309,7 @@ fun SettingsPage(onOpen: (SettingsSubPage) -> Unit, onProxyChanged: () -> Unit =
 
 /** Uppercase wide-tracked section label, reference style. */
 @Composable
-private fun PrefSectionLabel(text: String) {
+internal fun PrefSectionLabel(text: String) {
     val colors = LocalInterstellarColors.current
     Text(
         text,
@@ -388,7 +400,7 @@ private fun UpdateCheckRow() {
 
 /** Small capsule action chip for trailing slots (same style as 规则文件's 更新). */
 @Composable
-private fun CapsuleAction(text: String, accent: androidx.compose.ui.graphics.Color, onClick: () -> Unit) {
+internal fun CapsuleAction(text: String, accent: androidx.compose.ui.graphics.Color, onClick: () -> Unit) {
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
@@ -408,7 +420,7 @@ private fun CapsuleAction(text: String, accent: androidx.compose.ui.graphics.Col
 }
 
 @Composable
-private fun PrefRowShell(
+internal fun PrefRowShell(
     title: String,
     desc: String? = null,
     onClick: (() -> Unit)? = null,
@@ -445,7 +457,7 @@ private fun PrefRowShell(
 }
 
 @Composable
-private fun PrefToggleRow(
+internal fun PrefToggleRow(
     title: String,
     desc: String? = null,
     checked: Boolean,

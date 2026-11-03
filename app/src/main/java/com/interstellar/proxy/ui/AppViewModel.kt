@@ -313,6 +313,11 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                     _mixSubscriptionIds.value,
                 )
             },
+            isNodeEligible = { node ->
+                Settings.coreKind != CoreKind.XRAY ||
+                    com.interstellar.proxy.data.config.XrayConfigBuilder.supports(node)
+            },
+            config = { com.interstellar.proxy.data.SmartSettingsStore.load() },
             // 智能行为细节走 AppLog("smart") 在日志页呈现; 严重状态由首页 SmartStatusLine(state.alert) 呈现
             onStateChanged = { _smartState.value = it },
         )
@@ -378,6 +383,17 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 SubscriptionRepository.regenerateActiveConfig()
             }
             smartEngine.start()
+        }
+    }
+
+    /**
+     * Settings page saved smart parameters. Restart only the engine loop —
+     * the core (and the VPN) keeps running; an in-flight round finishes first.
+     */
+    fun onSmartConfigChanged() {
+        if (Settings.selectedOutboundTag != ConfigBuilder.SMART_TAG) return
+        if (_status.value == Status.Started || _status.value == Status.Starting) {
+            smartEngine.restart()
         }
     }
 

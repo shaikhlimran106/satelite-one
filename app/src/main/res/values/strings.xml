@@ -437,6 +437,7 @@
     <string name="smart_settings_test_url_title">测速 URL</string>
     <string name="smart_settings_test_url_desc">必须为 https,返回 2xx/204 视为成功</string>
     <string name="smart_settings_url_invalid">请输入 https:// 开头的地址</string>
+    <string name="smart_settings_range_hint">范围 %1$d–%2$d</string>
     <string name="smart_settings_allow_udp_title">允许 UDP 节点参与</string>
     <string name="smart_settings_allow_udp_desc">hysteria2 / tuic / wireguard / QUIC;Xray 通过切换验证</string>
     <string name="smart_settings_backoff_title">失败退避</string>

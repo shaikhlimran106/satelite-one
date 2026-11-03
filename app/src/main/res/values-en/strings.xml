@@ -437,6 +437,7 @@
     <string name="smart_settings_test_url_title">Test URL</string>
     <string name="smart_settings_test_url_desc">Must be https; a 2xx/204 response counts as success</string>
     <string name="smart_settings_url_invalid">Enter an https:// URL</string>
+    <string name="smart_settings_range_hint">Range %1$d–%2$d</string>
     <string name="smart_settings_allow_udp_title">Allow UDP nodes</string>
     <string name="smart_settings_allow_udp_desc">hysteria2 / tuic / wireguard / QUIC; Xray verifies by switching</string>
     <string name="smart_settings_backoff_title">Failure backoff</string>

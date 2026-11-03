@@ -265,7 +265,15 @@ private fun SmartNumberRow(
             )
             Spacer(Modifier.height(2.dp))
             Text(
-                desc,
+                if (error) {
+                    stringResource(
+                        R.string.smart_settings_range_hint,
+                        range.first,
+                        range.last,
+                    )
+                } else {
+                    desc
+                },
                 color = if (error) colors.danger else colors.textTertiary,
                 fontSize = 12.sp,
                 lineHeight = 15.sp,
